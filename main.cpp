@@ -6,46 +6,41 @@
 #include <thread>
 #include <stdexcept>
 
-int stringToInt(const std::string& str) {
+int stringToInt(const std::string &str)
+{
     int result = 0;
-    int sign = 1;
+    bool negative = false;
     size_t i = 0;
 
     while (i < str.size() && std::isspace(str[i]))
         i++;
 
-    if (i < str.size() && (str[i] == '-' || str[i] == '+')) {
-        if (str[i] == '-') {
-            sign = -1;
-        }
+    if (i < str.size() && (str[i] == '-' || str[i] == '+'))
+    {
+        if (str[i] == '-')
+            negative = true;
         i++;
     }
 
-    while (i < str.size() && std::isdigit(str[i])) {
-        int digit = str[i] - '0';
-
-        if (result > (INT_MAX - digit) / 10) 
-            throw std::overflow_error("Integer overflow");
-        
-        result = result * 10 + digit;
+    while (i < str.size() && std::isdigit(str[i]))
+    {
+        result = result * 10 + (str[i] - '0');
         i++;
     }
 
-    // Ensure that the entire string is consumed
-    while (i < str.size() && std::isspace(str[i])) 
-        i++;
+    if (negative)
+        result = -result;
 
-    if (i < str.size()) 
-        throw std::invalid_argument("Invalid input: " + str);
-
-    return result * sign;
+    return result;
 }
 
-// Function to parse a batch of lines and update the map
-void parseLine(const std::vector<std::string>& lines, std::unordered_map<std::string, int64_t>& keyValueMap, int argc, char* argv[]) {
-    for (const std::string& line : lines) {
+void parseLine(const std::vector<std::string> &lines, std::unordered_map<std::string, int64_t> &keyValueMap, std::vector<int> args)
+{
+    for (const std::string &line : lines)
+    {
         std::size_t pos = 0;
-        while (pos < line.size()) {
+        while (pos < line.size())
+        {
             std::size_t eqPos = line.find('=', pos);
             std::size_t scPos = line.find(';', pos);
 
@@ -60,25 +55,29 @@ void parseLine(const std::vector<std::string>& lines, std::unordered_map<std::st
             int32_t key = stringToInt(keyStr);
             std::string concatenatedStr;
 
-            for(size_t input = 0; input < argc; input++)
+            for (size_t input = 0; input < args.size(); input++)
             {
-                if(input == key)
+                if (input == key)
                 {
                     concatenatedStr += value;
-                    concatenatedStr += (input < argc - 1) ? "-" : "";
+                    if (input < args.size() - 1)
+                        concatenatedStr += "-";
+                    break;
                 }
             }
 
-            if(!concatenatedStr.empty())
+            if (!concatenatedStr.empty())
                 keyValueMap[concatenatedStr]++;
         }
     }
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[])
+{
     std::ifstream inputFile("data.txt");
 
-    if (!inputFile.is_open()) {
+    if (!inputFile.is_open())
+    {
         std::cerr << "Failed to open the file." << std::endl;
         return 1;
     }
@@ -90,26 +89,35 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> batch;
     const size_t batchSize = 1000;
 
-    while (std::getline(inputFile, line)) {
+    std::vector<int> args;
+    for (int i = 1; i < argc; i++)
+    {
+        args.push_back(stringToInt(argv[i]));
+    }
+
+    while (std::getline(inputFile, line))
+    {
         batch.push_back(line);
 
-        if (batch.size() >= batchSize) {
-            threads.emplace_back(parseLine, batch, std::ref(keyValueMap), argc, argv);
+        if (batch.size() >= batchSize)
+        {
+            threads.emplace_back(parseLine, batch, std::ref(keyValueMap), args);
             batch.clear();
         }
     }
 
-    if (!batch.empty()) {
-        threads.emplace_back(parseLine, batch, std::ref(keyValueMap), argc, argv);
+    if (!batch.empty())
+    {
+        threads.emplace_back(parseLine, batch, std::ref(keyValueMap), args);
         batch.clear();
     }
 
-    for (std::thread& t : threads)
+    for (std::thread &t : threads)
         t.join();
 
     inputFile.close();
 
-    for (const auto& pair : keyValueMap)
+    for (const auto &pair : keyValueMap)
         std::cout << "Key: " << pair.first << " Value: " << pair.second << std::endl;
 
     return 0;
