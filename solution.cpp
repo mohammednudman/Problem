@@ -6,9 +6,11 @@
 #include <thread>
 #include <stdexcept>
 #include <chrono>
+#include <mutex>
 
+std::mutex mapMutex;
 
-int stringToInt(const std::string& str)
+int stringToInt(const std::string &str)
 {
     int result = 0;
     bool negative = false;
@@ -36,9 +38,9 @@ int stringToInt(const std::string& str)
     return result;
 }
 
-void parseLine(const std::vector<std::string>& lines, std::unordered_map<std::string, int64_t>& keyValueMap, std::vector<int> args)
+void parseLine(const std::vector<std::string> &lines, std::unordered_map<std::string, int64_t> &keyValueMap, std::vector<int> args)
 {
-    for (const std::string& line : lines)
+    for (const std::string &line : lines)
     {
         std::string concatenatedStr;
         std::size_t pos = 0;
@@ -57,15 +59,19 @@ void parseLine(const std::vector<std::string>& lines, std::unordered_map<std::st
 
             pos = scPos + 1;
             int32_t input;
-            //for (size_t input = 0; input < args.size(); input++)
-            if (std::find(args.begin(), args.end(), key) != args.end())
+            // if (std::find(args.begin(), args.end(), key) != args.end())
+            for (size_t input = 0; input < args.size(); input++)
             {
-                concatenatedStr += value;
-                concatenatedStr += "-";
-                ++count;
-                if (count >= args.size()) {
-                    flag = true;
-                    break;
+                if (stringToInt(key) == args[input])
+                {
+                    concatenatedStr += value;
+                    concatenatedStr += "-";
+                    ++count;
+                    if (count >= args.size())
+                    {
+                        flag = true;
+                        break;
+                    }
                 }
             }
 
@@ -74,11 +80,15 @@ void parseLine(const std::vector<std::string>& lines, std::unordered_map<std::st
         }
         concatenatedStr.pop_back();
         if (!concatenatedStr.empty())
+        {
+            mapMutex.lock();
             keyValueMap[concatenatedStr]++;
+            mapMutex.unlock();
+        }
     }
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     auto start = std::chrono::steady_clock::now();
 
@@ -95,7 +105,8 @@ int main(int argc, char* argv[])
 
     std::vector<std::thread> threads;
     std::vector<std::string> batch;
-    const size_t batchSize = 10000;
+
+    const size_t batchSize = 1000;
 
     std::vector<int> args;
     for (int i = 1; i < argc; i++)
@@ -112,7 +123,6 @@ int main(int argc, char* argv[])
             threads.emplace_back(parseLine, batch, std::ref(keyValueMap), args);
             batch.clear();
         }
-
     }
 
     if (!batch.empty())
@@ -121,16 +131,16 @@ int main(int argc, char* argv[])
         batch.clear();
     }
 
-    for (std::thread& t : threads)
+    for (std::thread &t : threads)
         t.join();
 
     inputFile.close();
 
-    for (const auto& pair : keyValueMap)
+    for (const auto &pair : keyValueMap)
         std::cout << "Key: " << pair.first << " Value: " << pair.second << std::endl;
     auto end = std::chrono::steady_clock::now();
 
-    std::cout << std::chrono::duration <double, std::milli>(end - start).count() << " ms" << std::endl;
+    std::cout << std::chrono::duration<double, std::milli>(end - start).count() << " ms" << std::endl;
 
     return 0;
 }
