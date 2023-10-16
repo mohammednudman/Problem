@@ -78,7 +78,7 @@ void parseLine(const std::vector<std::string> &lines, std::unordered_map<std::st
             if (flag)
                 break;
         }
-        concatenatedStr.pop_back();
+        concatenatedStr.pop_back(); //Popping the last appended '-'.
         if (!concatenatedStr.empty())
         {
             mapMutex.lock();
