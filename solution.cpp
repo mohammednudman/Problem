@@ -59,7 +59,7 @@ void parseLine(const std::vector<std::string> &lines, std::unordered_map<std::st
 
             pos = scPos + 1;
             int32_t input;
-            // if (std::find(args.begin(), args.end(), key) != args.end())
+            
             for (size_t input = 0; input < args.size(); input++)
             {
                 if (stringToInt(key) == args[input])
