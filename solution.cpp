@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     inputFile.close();
 
     for (const auto &pair : keyValueMap)
-        std::cout << "Key: " << pair.first << " Value: " << pair.second << std::endl;
+        std::cout << "ConcatenationStr: " << pair.first << " Occurences: " << pair.second << std::endl;
     auto end = std::chrono::steady_clock::now();
 
     std::cout << std::chrono::duration<double, std::milli>(end - start).count() << " ms" << std::endl;
